@@ -258,6 +258,16 @@ namespace Helper_1080.ContentPages.Tools
 
                 item.QRcodeImagePath = shareImage.FullName;
 
+                item.baiduShareInfo = new();
+
+                string SharePassword = "解压密码";
+                var passwordResult = Regex.Match(shareImage.Name, @"百度轉存二維碼,提取碼\(注意區分數字1和字母l\)：(\w*)");
+                if (passwordResult.Success)
+                {
+                    SharePassword = passwordResult.Groups[1].Value;
+                    item.baiduShareInfo.sharePassword = SharePassword;
+                }
+
                 Bitmap image;
                 image = (Bitmap)Bitmap.FromFile(shareImage.FullName);
                 LuminanceSource source;
@@ -265,28 +275,18 @@ namespace Helper_1080.ContentPages.Tools
                 BinaryBitmap bitmap = new BinaryBitmap(new HybridBinarizer(source));
                 Result result = new MultiFormatReader().decode(bitmap);
 
-                string SharePassword = "解压密码";
-                var passwordResult = Regex.Match(shareImage.Name, @"百度轉存二維碼,提取碼\(注意區分數字1和字母l\)：(\w*)");
-                if (passwordResult.Success)
+                if (result != null)
                 {
-                    SharePassword = passwordResult.Groups[1].Value;
+                    item.baiduShareInfo.shareLink = result.Text.Trim();
                 }
 
-                item.baiduShareInfo = new() { shareLink = result.Text.Trim(), sharePassword = SharePassword };
             }
 
             GetLinkFromRarInfo();
-            //shareBaiduLinkList = rarFileNameList.Where(x => !string.IsNullOrEmpty(x.baiduShareInfo.shareLink)).ToList();
-            //down115LinkList = rarFileNameList.Where(x => x.Links.ContainsKey("ed2k") || x.Links.ContainsKey("magnet") || x.Links.ContainsKey("直链")).ToList();
-            //share115LinkList = rarFileNameList.Where(x => x.Links.ContainsKey("115转存链接")).ToList();
-
-
 
             shareBaiduLinkCount_TextBlock.Text = shareBaiduLinkList.Count().ToString();
             down115LinkCount_TextBlock.Text = down115LinkList.Count().ToString();
             share115LinkCount_TextBlock.Text = share115LinkList.Count().ToString();
-
-
 
             FileListView.SelectedIndex = 0;
         }
@@ -305,18 +305,21 @@ namespace Helper_1080.ContentPages.Tools
                 {
                     shareBaiduLinkList.Add(item.baiduShareInfo.shareLinkWithPwd);
                 }
+
                 //其他链接
                 foreach(var linkDict in item.Links)
                 {
                     switch (linkDict.Key)
                     {
-                        case "ed2k" or "magnet" or "直链":
-                            down115LinkList.Add(String.Join('\n', linkDict.Value));
+                        case ("ed2k" or "magnet" or "直链"):
+                            if (down115LinkList.Count == 0)
+                            {
+                                down115LinkList.Add(String.Join('\n', linkDict.Value));
+                            }
                             break;
                         case "115转存链接":
                             share115LinkList.Add(String.Join('\n', linkDict.Value));
                             break;
-
                     }
                 }
             }
@@ -352,29 +355,43 @@ namespace Helper_1080.ContentPages.Tools
             FormatContentGrid.Children.Add(passwdValueTextBlock);
 
             //百度网盘分享
-            FormatContentGrid.RowDefinitions.Add(new RowDefinition() { Height = GridLength.Auto });
-            //var baiduShareLinkTitle_TextBlock = new TextBlock() { Text = "百度分享链接"};
+            if (fileInfo.baiduShareInfo != null)
+            {
+                if (fileInfo.baiduShareInfo.sharePassword != null)
+                {
+                    baiduSharePassword_TextBlock.Text = fileInfo.baiduShareInfo.sharePassword;
+                }
 
-            Controls.TitleTextBlock baiduShareLinkTitle_TextBlock = new Controls.TitleTextBlock("百度分享链接");
-            baiduShareLinkTitle_TextBlock.SetValue(Grid.RowProperty, 1);
-            FormatContentGrid.Children.Add(baiduShareLinkTitle_TextBlock);
+                if (fileInfo.baiduShareInfo.shareLink != null)
+                {
+                    FormatContentGrid.RowDefinitions.Add(new RowDefinition() { Height = GridLength.Auto });
+                    //var baiduShareLinkTitle_TextBlock = new TextBlock() { Text = "百度分享链接"};
 
-            var baiduShareLinkValue_TextBlock = new TextBlock() { Text = fileInfo.baiduShareInfo.shareLinkWithPwd, TextWrapping = TextWrapping.Wrap };
-            baiduShareLinkValue_TextBlock.Tapped += TextBlock_Tapped;
+                    Controls.TitleTextBlock baiduShareLinkTitle_TextBlock = new Controls.TitleTextBlock("百度分享链接");
+                    baiduShareLinkTitle_TextBlock.SetValue(Grid.RowProperty, 1);
+                    FormatContentGrid.Children.Add(baiduShareLinkTitle_TextBlock);
 
-            baiduShareLinkValue_TextBlock.PointerEntered += TextBlock_PointerEntered;
-            baiduShareLinkValue_TextBlock.PointerExited += TextBlock_PointerExited;
+                    var baiduShareLinkValue_TextBlock = new TextBlock() { Text = fileInfo.baiduShareInfo.shareLinkWithPwd, TextWrapping = TextWrapping.Wrap };
+                    baiduShareLinkValue_TextBlock.Tapped += TextBlock_Tapped;
 
-            baiduShareLinkValue_TextBlock.SetValue(Grid.RowProperty, 1);
-            baiduShareLinkValue_TextBlock.SetValue(Grid.ColumnProperty, 1);
-            FormatContentGrid.Children.Add(baiduShareLinkValue_TextBlock);
+                    baiduShareLinkValue_TextBlock.PointerEntered += TextBlock_PointerEntered;
+                    baiduShareLinkValue_TextBlock.PointerExited += TextBlock_PointerExited;
 
-            baiduSharePassword_TextBlock.Text = fileInfo.baiduShareInfo.sharePassword;
+                    baiduShareLinkValue_TextBlock.SetValue(Grid.RowProperty, 1);
+                    baiduShareLinkValue_TextBlock.SetValue(Grid.ColumnProperty, 1);
+                    FormatContentGrid.Children.Add(baiduShareLinkValue_TextBlock);
+                }
+
+                
+
+            }
+
+            int gridRowIndex = FormatContentGrid.RowDefinitions.Count;
 
             for (int i = 0;i< fileInfo.Links.Count; i++)
             {
                 //第一行为解压密码
-                int rowIndex = i + 2;
+                int rowIndex = i + gridRowIndex;
 
                 var item = fileInfo.Links.ToArray()[i];
                 FormatContentGrid.RowDefinitions.Add(new RowDefinition() { Height = GridLength.Auto });
