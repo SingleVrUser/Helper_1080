@@ -38,7 +38,7 @@ namespace Helper_1080.View
 
         private void NavigationView_SelectionChanged(NavigationView sender, NavigationViewSelectionChangedEventArgs args)
         {
-            NavigationView navigationView = sender as NavigationView;
+            //NavigationView navigationView = sender as NavigationView;
 
             if (args.IsSettingsSelected)
             {

@@ -1,4 +1,5 @@
-﻿using Microsoft.UI.Xaml;
+﻿using Helper_1080.Helper;
+using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Controls.Primitives;
 using Microsoft.UI.Xaml.Data;
@@ -23,9 +24,19 @@ namespace Helper_1080.View
     /// </summary>
     public sealed partial class Home : Page
     {
+        ForumApi forumApi = new();
+
         public Home()
         {
             this.InitializeComponent();
+
+
+        }
+
+        private async void Button_Click(object sender, RoutedEventArgs e)
+        {
+            await forumApi.getDownLogToday();
+
         }
     }
 }

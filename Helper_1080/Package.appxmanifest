@@ -9,7 +9,7 @@
   <Identity
     Name="3dc08890-bf7b-4b48-a137-355a4b2d0370"
     Publisher="CN=Helper_1080"
-    Version="0.1.0.0" />
+    Version="0.1.1.0" />
 
   <Properties>
     <DisplayName>Helper_1080</DisplayName>

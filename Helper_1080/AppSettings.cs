@@ -11,6 +11,7 @@ namespace Helper_1080
     {
         public static ApplicationDataContainer localSettings { get { return ApplicationData.Current.LocalSettings; } }
 
+
         public static string Cookie
         {
             get
@@ -20,6 +21,23 @@ namespace Helper_1080
             set
             {
                 localSettings.Values["Cookie"] = value;
+            }
+        }
+
+        public static string BaseUrl
+        {
+            get
+            {
+                string baseUrl = localSettings.Values["BaseUrl"] as string;
+                if (string.IsNullOrEmpty(baseUrl))
+                {
+                    baseUrl = "https://www.x666x.me/";
+                }
+                return baseUrl;
+            }
+            set
+            {
+                localSettings.Values["BaseUrl"] = value;
             }
         }
     }

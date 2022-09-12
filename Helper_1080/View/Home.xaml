@@ -9,5 +9,6 @@
 
     <Grid>
         <TextBlock Text="暂无内容" FontSize="30" Foreground="{ThemeResource TemporaryTextFillColorDisabled}" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+        <Button Click="Button_Click" Content="点击"/>
     </Grid>
 </Page>
