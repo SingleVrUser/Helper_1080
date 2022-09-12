@@ -312,9 +312,10 @@ namespace Helper_1080.ContentPages.Tools
                     switch (linkDict.Key)
                     {
                         case ("ed2k" or "magnet" or "直链"):
-                            if (down115LinkList.Count == 0)
+                            string down115Link = String.Join('\n', linkDict.Value);
+                            if (!down115LinkList.Contains(down115Link))
                             {
-                                down115LinkList.Add(String.Join('\n', linkDict.Value));
+                                down115LinkList.Add(down115Link);
                             }
                             break;
                         case "115转存链接":
