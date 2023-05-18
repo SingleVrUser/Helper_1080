@@ -5,10 +5,25 @@
     xmlns:local="using:Helper_1080.View"
     xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    xmlns:controls="using:Helper_1080.Controls"
     mc:Ignorable="d">
 
-    <Grid>
-        <TextBlock Text="暂无内容" FontSize="30" Foreground="{ThemeResource TemporaryTextFillColorDisabled}" HorizontalAlignment="Center" VerticalAlignment="Center"/>
-        <Button Click="Button_Click" Content="点击"/>
+    <Grid Margin="5">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="auto"/>
+            <RowDefinition Height="*"/>
+        </Grid.RowDefinitions>
+        <!--<TextBlock Text="暂无内容" FontSize="30" Foreground="{ThemeResource TemporaryTextFillColorDisabled}" HorizontalAlignment="Center" VerticalAlignment="Center"/>-->
+
+        <Grid>
+            <controls:InfoCard x:Name="downInfoCard" userInfoModel="{x:Bind dateInfoCard}" HorizontalAlignment="Left"/>
+        </Grid>
+
+        <Button Content="刷新" HorizontalAlignment="Right" VerticalAlignment="Top" Click="RefreshButton_Click"/>
+
+        <Grid Grid.Row="1" BorderBrush="{ThemeResource AppBarBorderThemeBrush}" BorderThickness="0,2,0,0" Margin="0,5,0,0">
+            <TextBlock Text="内容"/>
+        </Grid>
+        <!--<Button Click="Button_Click" Content="点击"/>-->
     </Grid>
 </Page>

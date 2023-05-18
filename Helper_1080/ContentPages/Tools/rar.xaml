@@ -11,6 +11,7 @@
         AllowDrop="True"
         DragOver="Grid_DragOver"
         Drop="Grid_Drop">
+        
 
         <!--背景-->
         <Grid.Background>
@@ -41,18 +42,20 @@
             <ColumnDefinition Width="auto"/>
             <ColumnDefinition Width="*"/>
         </Grid.ColumnDefinitions>
-        
+
+
         <!--拖拽前提示-->
         <Grid x:Name="DropTipGrid" Grid.RowSpan="2" Grid.ColumnSpan="2">
             <TextBlock Text="拖拽压缩包到这里" HorizontalAlignment="Center" VerticalAlignment="Center" FontSize="40" CharacterSpacing="100" Foreground="{ThemeResource TemporaryTextFillColorDisabled}"/>
         </Grid>
-            
+
         <!--附件名称-->
         <ListView
-            Grid.Row="1" x:Name="FileListView" Visibility="Collapsed" ItemsSource="{x:Bind rarFileNameList}" SelectionChanged="FileListView_SelectionChanged">
+            Grid.Row="1" Grid.Column="0" x:Name="FileListView" Visibility="Collapsed" ItemsSource="{x:Bind FileNameList}" SelectionChanged="FileListView_SelectionChanged">
             <ListView.ItemTemplate>
-                <DataTemplate x:DataType="local:rarFileInfo">
-                    <TextBlock Text="{x:Bind Name}"/>
+                <DataTemplate x:DataType="local:fileInfo">
+                    <TextBlock Text="{x:Bind Name}"
+                               Padding="0,0,20,0"/>
                 </DataTemplate>
             </ListView.ItemTemplate>
         </ListView>
@@ -88,7 +91,7 @@
                 </Grid>
 
                 <!--百度分享二维码-->
-                <StackPanel Grid.Column="1" VerticalAlignment="Center" Spacing="2" Margin="0,0,0,2">
+                <StackPanel x:Name="QRcodeStackPanel" Grid.Column="1" VerticalAlignment="Center" Spacing="2" Margin="0,0,0,2" Visibility="Collapsed">
                     <Image x:Name="QRcodeImage" Width="100" Height="100"/>
                     <TextBlock x:Name="baiduSharePassword_TextBlock" HorizontalAlignment="Center" VerticalAlignment="Bottom" Tapped="TextBlock_Tapped" PointerEntered="TextBlock_PointerEntered" PointerExited="TextBlock_PointerExited"/>
                 </StackPanel>
@@ -114,9 +117,10 @@
 
                 
         </Grid>
-            
+           
         <!--批量按钮-->
-        <Grid Grid.ColumnSpan="2" ColumnSpacing="10">
+        <Grid Grid.ColumnSpan="2" Grid.Column="0" ColumnSpacing="10">
+            <Grid.Row>0</Grid.Row>
             <Grid.ColumnDefinitions>
                 <ColumnDefinition Width="*"/>
                 <ColumnDefinition Width="auto"/>
@@ -160,9 +164,42 @@
                         </StackPanel>
                     </Grid>
                 </Button>
+
+
+                <Button Padding="0"
+                        Click="Copy1Fichier_Click">
+                    <Grid>
+                        <TextBlock Text="1fichier"
+                                   Padding="20,5"
+                                   Foreground="#1b80e4"
+                                   FontWeight="Bold"
+                                   CharacterSpacing="50"
+                                   FontSize="15" />
+                        <StackPanel HorizontalAlignment="Right"
+                                    VerticalAlignment="Top"
+                                    Padding="2"
+                                    CornerRadius="5">
+                            <StackPanel.Background>
+                                <AcrylicBrush TintOpacity="0.7"
+                                              TintLuminosityOpacity="0.8"
+                                              TintColor="SkyBlue"
+                                              FallbackColor="SkyBlue"
+                                              Opacity="1" />
+                            </StackPanel.Background>
+                            <TextBlock x:Name="fichier_TextBlock"
+                                       Text="0"
+                                       Foreground="White" />
+                        </StackPanel>
+                    </Grid>
+                </Button>
             </StackPanel>
         </Grid>
 
-        <TeachingTip x:Name="LightDismissTeachingTip" IsLightDismissEnabled="True"/>
+        <!--进度条-->
+        <ProgressBar x:Name="RarProgressBar" IsIndeterminate="True" Grid.Row="0" Grid.ColumnSpan="2" Grid.Column="0"
+                     VerticalAlignment="Top" Visibility="Collapsed"/>
+
+
+        <TeachingTip Grid.Row="0" Grid.Column="0" x:Name="LightDismissTeachingTip" IsLightDismissEnabled="True"/>
     </Grid>
 </Page>

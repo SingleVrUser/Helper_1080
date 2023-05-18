@@ -47,8 +47,6 @@ namespace Helper_1080
 
         private void NavigationView_SelectionChanged(NavigationView sender, NavigationViewSelectionChangedEventArgs args)
         {
-            NavigationView navigationView = sender as NavigationView;
-
             if (args.IsSettingsSelected)
             {
                 NavView_Navigate("settings", args.RecommendedNavigationTransitionInfo);
@@ -80,7 +78,7 @@ namespace Helper_1080
 
             // Only navigate if the selected page isn't currently loaded.
             if (!(_page is null) && !Type.Equals(preNavPageType, _page))
-        {
+            {
                 ContentFrame.Navigate(_page, null, transitionInfo);
             }
         }

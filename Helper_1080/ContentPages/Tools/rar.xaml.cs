@@ -1,37 +1,22 @@
-﻿using Helper_1080.Helper;
+﻿using Microsoft.UI.Input;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
-using Microsoft.UI.Xaml.Controls.Primitives;
-using Microsoft.UI.Xaml.Data;
 using Microsoft.UI.Xaml.Input;
-using Microsoft.UI.Xaml.Media;
 using Microsoft.UI.Xaml.Media.Imaging;
-using Microsoft.UI.Xaml.Navigation;
-using Microsoft.VisualBasic.FileIO;
 using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
-using System.Diagnostics;
+using System.Drawing;
 using System.IO;
 using System.Linq;
 using System.Runtime.InteropServices.WindowsRuntime;
+using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using Windows.ApplicationModel.DataTransfer;
-using Windows.Foundation;
-using Windows.Foundation.Collections;
 using Windows.Storage;
 using ZXing;
 using ZXing.Common;
-using ZXing.QrCode.Internal;
-using ZXing.QrCode;
-using System.Drawing;
-using static System.Net.Mime.MediaTypeNames;
 using ZXing.Windows.Compatibility;
-using System.Text.RegularExpressions;
-using Windows.Services.Store;
-using System.Text.Json;
-using Microsoft.UI.Input;
-using System.Reflection;
 
 // To learn more about WinUI, the WinUI project structure,
 // and more about our project templates, see: http://aka.ms/winui-project-info.
@@ -43,10 +28,11 @@ namespace Helper_1080.ContentPages.Tools
     /// </summary>
     public sealed partial class rar : Page
     {
-        ObservableCollection<rarFileInfo> rarFileNameList = new();
+        ObservableCollection<fileInfo> FileNameList = new();
         List<string> shareBaiduLinkList = new();
         List<string> share115LinkList = new();
         List<string> down115LinkList = new();
+        List<string> fichierList = new();
 
         //保存路径
         string SaveRAReXtractFilesPath = Path.Combine(ApplicationData.Current.LocalFolder.Path, "eXtract");
@@ -66,6 +52,8 @@ namespace Helper_1080.ContentPages.Tools
 
         private async void tryAddtoClipboard(string ClipboardText)
         {
+
+
             //创建一个数据包
             DataPackage dataPackage = new DataPackage();
             //设置创建包里的文本内容
@@ -75,12 +63,11 @@ namespace Helper_1080.ContentPages.Tools
             //把数据包放到剪贴板里
             Clipboard.SetContent(dataPackage);
 
-
             DataPackageView dataPackageView = Clipboard.GetContent();
             string text = await dataPackageView.GetTextAsync();
             if (text == ClipboardText)
             {
-                LightDismissTeachingTip.Content = @"已添加到剪贴板";
+                LightDismissTeachingTip.Subtitle = @"已添加到剪贴板";
                 LightDismissTeachingTip.IsOpen = true;
 
                 await Task.Delay(1000);
@@ -90,6 +77,7 @@ namespace Helper_1080.ContentPages.Tools
 
         private async void Grid_Drop(object sender, DragEventArgs e)
         {
+
             //获取拖入文件信息
             if (e.DataView.Contains(StandardDataFormats.StorageItems))
             {
@@ -97,9 +85,12 @@ namespace Helper_1080.ContentPages.Tools
 
                 List<string> filesPath = new();
 
-                //await Task.Delay(1000);
+                //显示进度条
+                RarProgressBar.Visibility = Visibility;
 
-                rarFileNameList.Clear();
+                await Task.Delay(1000);
+
+                FileNameList.Clear();
 
                 foreach (var item in items)
                 {
@@ -111,9 +102,13 @@ namespace Helper_1080.ContentPages.Tools
                         //rar压缩包
                         if (File.FileType == ".rar")
                         {
-                            rarFileNameList.Add(new rarFileInfo() { Name = File.DisplayName, Path = File.Path });
-                        };
-
+                            FileNameList.Add(new fileInfo() { Name = File.DisplayName, Path = File.Path ,FileType = FileType.Rar});
+                        }
+                        //文本
+                        else if (File.FileType == ".txt")
+                        {
+                            FileNameList.Add(new fileInfo() { Name = File.DisplayName, Path = File.Path, FileType = FileType.Txt });
+                        }
                     }
                 }
 
@@ -121,124 +116,167 @@ namespace Helper_1080.ContentPages.Tools
                 infoBar.Message = $"拖入{items.Count}个文件";
             }
 
-            if (rarFileNameList.Count == 0) return;
+            if (FileNameList.Count == 0) return;
 
             VisualStateManager.GoToState(this, "ShowDropResult", true);
 
-            foreach (var item in rarFileNameList)
+            foreach (var item in FileNameList)
             {
-                string FileName = Path.GetFileNameWithoutExtension(item.Path);
-                string outPath = Path.Combine(SaveRAReXtractFilesPath, FileName);
+                //fc2969832.txt
+                FileInfo detailFile = null;
 
-                if (!Directory.Exists(outPath))
+                switch (item.FileType)
                 {
-                    Helper.local.ProgressRun("bz", $"x -y -o:{outPath} {item.Path}");
+                    case FileType.Rar:
+                    {
+                        var fileName = Path.GetFileNameWithoutExtension(item.Path);
+                        var outPath = Path.Combine(SaveRAReXtractFilesPath, fileName);
+
+                        if (!Directory.Exists(outPath))
+                        {
+                            Helper.local.ProgressRun("bz", $"x -y -o:{outPath} {item.Path}");
+                        }
+
+                        var theFolder = new DirectoryInfo(outPath);
+                        var filesList = theFolder.GetFiles();
+                        detailFile = filesList.FirstOrDefault(x => Regex.Match(x.Name, @"[a-z0-9]\.txt", RegexOptions.IgnoreCase).Success);
+
+                        //百度轉存二維碼,提取碼(注意區分數字1和字母l)：877a.png
+                        var shareImage = filesList.FirstOrDefault(x => x.Extension == ".png");
+                        if (shareImage == null) continue;
+
+                        item.QRcodeImagePath = shareImage.FullName;
+
+                        item.baiduShareInfo = new();
+
+                        var SharePassword = "解压密码";
+                        var passwordResult = Regex.Match(shareImage.Name, @"百度轉存二維碼,提取碼\(注意區分數字1和字母l\)：(\w*)");
+                        if (passwordResult.Success)
+                        {
+                            SharePassword = passwordResult.Groups[1].Value;
+                            item.baiduShareInfo.sharePassword = SharePassword;
+                        }
+
+                        Bitmap image;
+                        image = (Bitmap)System.Drawing.Image.FromFile(shareImage.FullName);
+                        LuminanceSource source;
+                        source = new BitmapLuminanceSource(image);
+                        var bitmap = new BinaryBitmap(new HybridBinarizer(source));
+                        var result = new MultiFormatReader().decode(bitmap);
+
+                        if (result != null)
+                        {
+                            item.baiduShareInfo.shareLink = result.Text.Trim();
+                        }
+
+                        break;
+                    }
+                    case FileType.Txt:
+                        detailFile = new FileInfo(item.Path);
+
+                        
+                        break;
+                    default:
+                        throw new ArgumentOutOfRangeException();
                 }
 
-                DirectoryInfo TheFolder = new DirectoryInfo(outPath);
-                var filesList = TheFolder.GetFiles();
-
-                //fc2969832.txt
-                var detailFile = filesList.Where(x => Regex.Match(x.Name, @"[a-z0-9]\.txt",RegexOptions.IgnoreCase).Success).FirstOrDefault();
                 if (detailFile == null) continue;
 
                 //读取文件
-                using (StreamReader sr = new StreamReader(detailFile.FullName))
+                using var sr = new StreamReader(detailFile.FullName);
+
+                var originalContent = await sr.ReadToEndAsync();
+
+                item.DetailFileContent = originalContent;
+
+                //获取下载链接
+                var contentLine = originalContent.Split('\n');
+                for (var i = 0; i < contentLine.Count(); i++)
                 {
-                    string originalContent = sr.ReadToEnd();
-
-                    item.DetailFileContent = originalContent;
-
-                    //获取下载链接
-                    var contentLine = originalContent.Split('\n');
-                    for (int i = 0; i < contentLine.Count(); i++)
+                    var line = contentLine[i].Trim();
+                    if (line.Contains("解壓密碼："))
                     {
-                        var line = contentLine[i].Trim();
-                        if (line.Contains("解壓密碼："))
+                        var passwdResult = Regex.Match(line, @"解壓密碼：(.*)");
+                        if (passwdResult.Success)
                         {
-                            var passwdResult = Regex.Match(line, @"解壓密碼：(.*)");
-                            if (passwdResult.Success)
-                            {
-                                item.CompressedPassword = passwdResult.Groups[1].Value;
-                            }
+                            item.CompressedPassword = passwdResult.Groups[1].Value;
                         }
-                        else if (line.Contains("magnet"))
+                    }
+                    else if (line.Contains("magnet"))
+                    {
+                        var link = line;
+                        if (item.Links.ContainsKey("magnet"))
                         {
-                            string link = line;
-                            if (item.Links.ContainsKey("magnet"))
-                            {
-                                item.Links["magnet"].Add(link);
-                            }
-                            else
-                            {
-                                item.Links.Add("magnet", new List<string> { link });
-                            }
+                            item.Links["magnet"].Add(link);
                         }
-                        else if (line.Contains("ed2k://"))
+                        else
                         {
-                            string link = line;
-                            if (item.Links.ContainsKey("ed2k"))
-                            {
-                                item.Links["ed2k"].Add(link);
-                            }
-                            else
-                            {
-                                item.Links.Add("ed2k", new List<string> { link });
-                            }
+                            item.Links.Add("magnet", new List<string> { link });
                         }
-                        else if (line.Contains('|') && Regex.Match(line, @"\w.*\|\d.*?\|\w{40}\|\w{40}").Success)
+                    }
+                    else if (line.Contains("ed2k://"))
+                    {
+                        var link = line;
+                        if (item.Links.ContainsKey("ed2k"))
                         {
-                            string link = line;
-                            if (item.Links.ContainsKey("115转存链接"))
-                            {
-                                item.Links["115转存链接"].Add(link);
-                            }
-                            else
-                            {
-                                item.Links.Add("115转存链接", new List<string> { link });
-                            }
+                            item.Links["ed2k"].Add(link);
                         }
-                        else if (line.Contains("http"))
+                        else
                         {
-                            if (line.Contains("1fichier"))
+                            item.Links.Add("ed2k", new List<string> { link });
+                        }
+                    }
+                    else if (line.Contains('|') && Regex.Match(line, @"\w.*\|\d.*?\|\w{40}\|\w{40}").Success)
+                    {
+                        var link = line;
+                        if (item.Links.ContainsKey("115转存链接"))
+                        {
+                            item.Links["115转存链接"].Add(link);
+                        }
+                        else
+                        {
+                            item.Links.Add("115转存链接", new List<string> { link });
+                        }
+                    }
+                    else if (line.Contains("http"))
+                    {
+                        if (line.Contains("1fichier"))
+                        {
+                            var linkResult = Regex.Match(line, @"[:： ]+(https?:.*)");
+                            if (linkResult.Success)
                             {
-                                var linkResult = Regex.Match(line, @"[:： ]+(https?:.*)");
-                                if (linkResult.Success)
+                                string link = linkResult.Groups[1].Value;
+                                if (item.Links.ContainsKey("1fichier"))
                                 {
-                                    string link = linkResult.Groups[1].Value;
-                                    if (item.Links.ContainsKey("1fichier"))
-                                    {
-                                        item.Links["1fichier"].Add(link);
-                                    }
-                                    else
-                                    {
-                                        item.Links.Add("1fichier", new List<string> { link });
-                                    }
+                                    item.Links["1fichier"].Add(link);
                                 }
-                            }
-                            else
-                            {
-                                var linkResult = Regex.Match(line, @"^http.*");
-                                if (linkResult.Success)
+                                else
                                 {
-                                    string link = linkResult.Value;
-                                    if (item.Links.ContainsKey("直链"))
-                                    {
-                                        item.Links["直链"].Add(link);
-                                    }
-                                    else
-                                    {
-                                        item.Links.Add("直链", new List<string> { link });
-                                    }
+                                    item.Links.Add("1fichier", new List<string> { link });
                                 }
                             }
                         }
-                        else if (line.Contains("http"))
+                        else if (line.Contains("pan.baidu.com"))
+                        {
+                            var panLink = Regex.Match(line, @"链接：(http://pan.baidu.com/s/\w+) 密码：(\w+)");
+                            if (panLink.Success)
+                            {
+                                var link = panLink.Groups[1].Value;
+                                var password = panLink.Groups[2].Value;
+
+                                item.baiduShareInfo = new baiduShareInfo
+                                {
+                                    shareLink = link,
+                                    sharePassword =password
+                                };
+                            }
+                        }
+                        else
                         {
                             var linkResult = Regex.Match(line, @"^http.*");
                             if (linkResult.Success)
                             {
-                                string link = linkResult.Groups[1].Value;
+                                var link = linkResult.Value;
                                 if (item.Links.ContainsKey("直链"))
                                 {
                                     item.Links["直链"].Add(link);
@@ -251,44 +289,21 @@ namespace Helper_1080.ContentPages.Tools
                         }
                     }
                 }
-
-                //百度轉存二維碼,提取碼(注意區分數字1和字母l)：877a.png
-                var shareImage = filesList.Where(x => x.Extension == ".png").FirstOrDefault();
-                if (shareImage == null) continue;
-
-                item.QRcodeImagePath = shareImage.FullName;
-
-                item.baiduShareInfo = new();
-
-                string SharePassword = "解压密码";
-                var passwordResult = Regex.Match(shareImage.Name, @"百度轉存二維碼,提取碼\(注意區分數字1和字母l\)：(\w*)");
-                if (passwordResult.Success)
-                {
-                    SharePassword = passwordResult.Groups[1].Value;
-                    item.baiduShareInfo.sharePassword = SharePassword;
-                }
-
-                Bitmap image;
-                image = (Bitmap)Bitmap.FromFile(shareImage.FullName);
-                LuminanceSource source;
-                source = new BitmapLuminanceSource(image);
-                BinaryBitmap bitmap = new BinaryBitmap(new HybridBinarizer(source));
-                Result result = new MultiFormatReader().decode(bitmap);
-
-                if (result != null)
-                {
-                    item.baiduShareInfo.shareLink = result.Text.Trim();
-                }
-
             }
+
+            //隐藏进度条
+            RarProgressBar.Visibility = Visibility.Collapsed;
 
             GetLinkFromRarInfo();
 
             shareBaiduLinkCount_TextBlock.Text = shareBaiduLinkList.Count().ToString();
             down115LinkCount_TextBlock.Text = down115LinkList.Count().ToString();
             share115LinkCount_TextBlock.Text = share115LinkList.Count().ToString();
+            fichier_TextBlock.Text = fichierList.Count().ToString();
 
             FileListView.SelectedIndex = 0;
+
+
         }
 
         private void GetLinkFromRarInfo()
@@ -296,12 +311,15 @@ namespace Helper_1080.ContentPages.Tools
             shareBaiduLinkList.Clear();
             down115LinkList.Clear();
             share115LinkList.Clear();
-            foreach (var item in rarFileNameList)
-            {
-                if (item.baiduShareInfo == null) continue;
+            fichierList.Clear();
 
+            // 115下载只需要用一种方式 
+            var down115Method = string.Empty;
+            
+            foreach (var item in FileNameList)
+            {
                 //百度网盘分享链接
-                if (!string.IsNullOrEmpty(item.baiduShareInfo.shareLink))
+                if (!string.IsNullOrEmpty(item.baiduShareInfo?.shareLink))
                 {
                     shareBaiduLinkList.Add(item.baiduShareInfo.shareLinkWithPwd);
                 }
@@ -312,14 +330,23 @@ namespace Helper_1080.ContentPages.Tools
                     switch (linkDict.Key)
                     {
                         case ("ed2k" or "magnet" or "直链"):
-                            string down115Link = String.Join('\n', linkDict.Value);
-                            if (!down115LinkList.Contains(down115Link))
+                            if (down115Method == string.Empty || down115Method == linkDict.Key)
                             {
-                                down115LinkList.Add(down115Link);
+                                var down115Link = string.Join('\n', linkDict.Value);
+                                if (!down115LinkList.Contains(down115Link))
+                                {
+                                    down115LinkList.Add(down115Link);
+                                }
+
+                                down115Method = linkDict.Key;
                             }
+
+                            break;
+                        case "1fichier":
+                            fichierList.Add(string.Join('\n', linkDict.Value));
                             break;
                         case "115转存链接":
-                            share115LinkList.Add(String.Join('\n', linkDict.Value));
+                            share115LinkList.Add(string.Join('\n', linkDict.Value));
                             break;
                     }
                 }
@@ -328,35 +355,43 @@ namespace Helper_1080.ContentPages.Tools
 
         private void FileListView_SelectionChanged(object sender, SelectionChangedEventArgs e)
         {
-            var fileInfo = (sender as ListView).SelectedItem as rarFileInfo;
-
-            if(fileInfo == null || fileInfo.QRcodeImagePath == null) return;
-
-            OriginalContent_Text.Text = fileInfo.DetailFileContent;
-
-            QRcodeImage.Source = new BitmapImage(new Uri(fileInfo.QRcodeImagePath));
+            var fileInfo = (sender as ListView)?.SelectedItem as fileInfo;
 
             FormatContentGrid.RowDefinitions.Clear();
             FormatContentGrid.Children.Clear();
 
-            //解压密码
-            FormatContentGrid.RowDefinitions.Add(new RowDefinition() { Height = GridLength.Auto });
-            //var passwdTitleTextBlock = new TextBlock() { Text = "解压密码"};
+            //百度分享二维码图片
+            if (fileInfo?.QRcodeImagePath != null)
+            {
+                QRcodeImage.Source = new BitmapImage(new Uri(fileInfo.QRcodeImagePath));
+                QRcodeStackPanel.Visibility = Visibility.Visible;
+            }
+            else
+            {
+                QRcodeStackPanel.Visibility = Visibility.Collapsed;
+            }
 
-            Controls.TitleTextBlock passwdTitleTextBlock = new Controls.TitleTextBlock("解压密码");
-            FormatContentGrid.Children.Add(passwdTitleTextBlock);
+            // 解压密码
+            if (!string.IsNullOrEmpty(fileInfo?.CompressedPassword))
+            {
+                FormatContentGrid.RowDefinitions.Add(new RowDefinition() { Height = GridLength.Auto });
 
-            var passwdValueTextBlock = new TextBlock() { Text = fileInfo.CompressedPassword, TextWrapping = TextWrapping.Wrap };
-            passwdValueTextBlock.Tapped += TextBlock_Tapped;
+                var passwordValueTextBlock = new TextBlock() { Text = fileInfo.CompressedPassword, TextWrapping = TextWrapping.Wrap };
+                passwordValueTextBlock.Tapped += TextBlock_Tapped;
 
-            passwdValueTextBlock.PointerEntered += TextBlock_PointerEntered;
-            passwdValueTextBlock.PointerExited += TextBlock_PointerExited;
+                passwordValueTextBlock.PointerEntered += TextBlock_PointerEntered;
+                passwordValueTextBlock.PointerExited += TextBlock_PointerExited;
 
-            passwdValueTextBlock.SetValue(Grid.ColumnProperty, 1);
-            FormatContentGrid.Children.Add(passwdValueTextBlock);
+                passwordValueTextBlock.SetValue(Grid.ColumnProperty, 1);
+
+                FormatContentGrid.Children.Add(passwordValueTextBlock);
+            }
+
+            var passwordTitleTextBlock = new Controls.TitleTextBlock("解压密码");
+            FormatContentGrid.Children.Add(passwordTitleTextBlock);
 
             //百度网盘分享
-            if (fileInfo.baiduShareInfo != null)
+            if (fileInfo?.baiduShareInfo != null)
             {
                 if (fileInfo.baiduShareInfo.sharePassword != null)
                 {
@@ -383,26 +418,28 @@ namespace Helper_1080.ContentPages.Tools
                     FormatContentGrid.Children.Add(baiduShareLinkValue_TextBlock);
                 }
 
-                
+
 
             }
 
-            int gridRowIndex = FormatContentGrid.RowDefinitions.Count;
+            //原文信息
+            OriginalContent_Text.Text = fileInfo?.DetailFileContent;
 
-            for (int i = 0;i< fileInfo.Links.Count; i++)
+            var gridRowIndex = FormatContentGrid.RowDefinitions.Count;
+
+            // 链接信息
+            for (var i = 0;i< fileInfo?.Links.Count; i++)
             {
                 //第一行为解压密码
-                int rowIndex = i + gridRowIndex;
+                var rowIndex = i + gridRowIndex;
 
                 var item = fileInfo.Links.ToArray()[i];
                 FormatContentGrid.RowDefinitions.Add(new RowDefinition() { Height = GridLength.Auto });
-                //var titleTextBlock = new TextBlock() { Text = item.Key};
-                Controls.TitleTextBlock titleTextBlock = new Controls.TitleTextBlock(item.Key);
+                var titleTextBlock = new Controls.TitleTextBlock(item.Key);
                 titleTextBlock.SetValue(Grid.RowProperty, rowIndex);
                 FormatContentGrid.Children.Add(titleTextBlock);
 
-
-                var valueTextBlock = new TextBlock() { Text = String.Join('\n', item.Value), TextWrapping = TextWrapping.Wrap };
+                var valueTextBlock = new TextBlock() { Text = string.Join('\n', item.Value), TextWrapping = TextWrapping.Wrap };
                 valueTextBlock.Tapped += TextBlock_Tapped;
                 valueTextBlock.PointerEntered += TextBlock_PointerEntered;
                 valueTextBlock.PointerExited += TextBlock_PointerExited;
@@ -433,7 +470,7 @@ namespace Helper_1080.ContentPages.Tools
         {
             if (shareBaiduLinkList.Count > 0)
             {
-                tryAddtoClipboard(String.Join('\n', shareBaiduLinkList));
+                tryAddtoClipboard(string.Join('\n', shareBaiduLinkList));
             }
         }
 
@@ -441,7 +478,7 @@ namespace Helper_1080.ContentPages.Tools
         {
             if (down115LinkList.Count > 0)
             {
-                tryAddtoClipboard(String.Join('\n', down115LinkList));
+                tryAddtoClipboard(string.Join('\n', down115LinkList));
             }
         }
 
@@ -449,24 +486,34 @@ namespace Helper_1080.ContentPages.Tools
         {
             if (share115LinkList.Count > 0)
             {
-                tryAddtoClipboard(String.Join('\n', share115LinkList));
+                tryAddtoClipboard(string.Join('\n', share115LinkList));
+            }
+        }
+
+        private void Copy1Fichier_Click(object sender, RoutedEventArgs e)
+        {
+            if (fichierList.Count > 0)
+            {
+                tryAddtoClipboard(string.Join('\n', fichierList));
             }
         }
     }
-    public class rarFileInfo
+    public class fileInfo
     {
         public string Name { get; set; }
         public string Path { get; set; }
         public string QRcodeImagePath { get; set; }
         public string DetailFileContent { get; set; }
         public baiduShareInfo baiduShareInfo { get; set; }
-
-
-
+        
         public Dictionary<string, List<string>> Links { get; set; } = new();
 
         public string CompressedPassword {get;set;}
+
+        public FileType FileType { get; set; }
     }
+
+    public enum FileType{Rar,Txt}
 
     public class baiduShareInfo
     {

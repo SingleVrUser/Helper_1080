@@ -5,7 +5,8 @@
     xmlns:local="using:Helper_1080.View"
     xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
-    mc:Ignorable="d">
+    mc:Ignorable="d"
+    NavigationCacheMode="Enabled">
 
     <Grid>
         <NavigationView x:Name="NavigationView"
@@ -14,13 +15,17 @@
                     SelectionChanged="NavigationView_SelectionChanged"
                     AlwaysShowHeader="False"
                     IsSettingsVisible="False"
-                        Loaded="NavigationView_Loaded">
+                    Loaded="NavigationView_Loaded">
 
             <NavigationView.MenuItems>
                 <NavigationViewItem Content="压缩包信息" Tag="rar"/>
             </NavigationView.MenuItems>
 
-            <Frame x:Name="ContentFrame"/>
+          <Frame x:Name="ContentFrame">
+              <Frame.Transitions>
+                  <PopupThemeTransition></PopupThemeTransition>
+              </Frame.Transitions>
+          </Frame>
         </NavigationView>
     </Grid>
 </Page>

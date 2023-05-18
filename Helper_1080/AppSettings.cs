@@ -31,7 +31,7 @@ namespace Helper_1080
                 string baseUrl = localSettings.Values["BaseUrl"] as string;
                 if (string.IsNullOrEmpty(baseUrl))
                 {
-                    baseUrl = "https://www.x666x.me/";
+                    baseUrl = "https://www.x222x.me/";
                 }
                 return baseUrl;
             }

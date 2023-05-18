@@ -11,6 +11,7 @@
         <Grid.Background>
             <AcrylicBrush TintOpacity="0.7" TintLuminosityOpacity="0.8"  TintColor="SkyBlue" FallbackColor="SkyBlue" Opacity="1"/>
         </Grid.Background>
+        
         <TextBlock x:Name="Content_TextBlock" HorizontalAlignment="Center" FontWeight="Bold" CharacterSpacing="100" Foreground="White"/>
     </Grid>
 </UserControl>
