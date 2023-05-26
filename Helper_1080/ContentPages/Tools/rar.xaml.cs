@@ -77,7 +77,6 @@ namespace Helper_1080.ContentPages.Tools
 
         private async void Grid_Drop(object sender, DragEventArgs e)
         {
-
             //获取拖入文件信息
             if (e.DataView.Contains(StandardDataFormats.StorageItems))
             {
@@ -205,9 +204,9 @@ namespace Helper_1080.ContentPages.Tools
                     else if (line.Contains("magnet"))
                     {
                         var link = line;
-                        if (item.Links.ContainsKey("magnet"))
+                        if (item.Links.TryGetValue("magnet", out var itemLink))
                         {
-                            item.Links["magnet"].Add(link);
+                            itemLink.Add(link);
                         }
                         else
                         {
@@ -217,9 +216,9 @@ namespace Helper_1080.ContentPages.Tools
                     else if (line.Contains("ed2k://"))
                     {
                         var link = line;
-                        if (item.Links.ContainsKey("ed2k"))
+                        if (item.Links.TryGetValue("ed2k", out var itemLink))
                         {
-                            item.Links["ed2k"].Add(link);
+                            itemLink.Add(link);
                         }
                         else
                         {
@@ -229,9 +228,9 @@ namespace Helper_1080.ContentPages.Tools
                     else if (line.Contains('|') && Regex.Match(line, @"\w.*\|\d.*?\|\w{40}\|\w{40}").Success)
                     {
                         var link = line;
-                        if (item.Links.ContainsKey("115转存链接"))
+                        if (item.Links.TryGetValue("115转存链接", out var itemLink))
                         {
-                            item.Links["115转存链接"].Add(link);
+                            itemLink.Add(link);
                         }
                         else
                         {
@@ -246,9 +245,9 @@ namespace Helper_1080.ContentPages.Tools
                             if (linkResult.Success)
                             {
                                 string link = linkResult.Groups[1].Value;
-                                if (item.Links.ContainsKey("1fichier"))
+                                if (item.Links.TryGetValue("1fichier", out var itemLink))
                                 {
-                                    item.Links["1fichier"].Add(link);
+                                    itemLink.Add(link);
                                 }
                                 else
                                 {
@@ -277,9 +276,9 @@ namespace Helper_1080.ContentPages.Tools
                             if (linkResult.Success)
                             {
                                 var link = linkResult.Value;
-                                if (item.Links.ContainsKey("直链"))
+                                if (item.Links.TryGetValue("直链", out var itemLink))
                                 {
-                                    item.Links["直链"].Add(link);
+                                    itemLink.Add(link);
                                 }
                                 else
                                 {
@@ -313,30 +312,30 @@ namespace Helper_1080.ContentPages.Tools
             share115LinkList.Clear();
             fichierList.Clear();
 
-            // 115下载只需要用一种方式 
-            var down115Method = string.Empty;
-            
             foreach (var item in FileNameList)
             {
+
+
                 //百度网盘分享链接
                 if (!string.IsNullOrEmpty(item.baiduShareInfo?.shareLink))
                 {
                     shareBaiduLinkList.Add(item.baiduShareInfo.shareLinkWithPwd);
                 }
 
+                var currentDown115Links = new List<string>();
+
+                // 115下载只需要用一种方式 
+                var down115Method = string.Empty;
+
                 //其他链接
-                foreach(var linkDict in item.Links)
+                foreach (var linkDict in item.Links)
                 {
                     switch (linkDict.Key)
                     {
                         case ("ed2k" or "magnet" or "直链"):
                             if (down115Method == string.Empty || down115Method == linkDict.Key)
                             {
-                                var down115Link = string.Join('\n', linkDict.Value);
-                                if (!down115LinkList.Contains(down115Link))
-                                {
-                                    down115LinkList.Add(down115Link);
-                                }
+                                currentDown115Links.AddRange(linkDict.Value);
 
                                 down115Method = linkDict.Key;
                             }
@@ -350,13 +349,15 @@ namespace Helper_1080.ContentPages.Tools
                             break;
                     }
                 }
-            }
 
-            // 如果存在非rar格式的链接，则不要rar
-            var noRarList = down115LinkList.Where(x => !x.Contains(".rar")).ToList();
-            if (noRarList.Count > 0)
-            {
-                down115LinkList = noRarList;
+                // 如果存在非rar格式的链接，则不要rar
+                var noRarList = currentDown115Links.Where(x => !x.Contains(".rar")).ToList();
+                if (noRarList.Count > 0)
+                {
+                    currentDown115Links = noRarList;
+                }
+
+                down115LinkList.Add(string.Join("\n",currentDown115Links));
             }
 
         }
