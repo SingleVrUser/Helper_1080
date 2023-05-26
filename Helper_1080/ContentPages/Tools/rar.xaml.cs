@@ -351,6 +351,14 @@ namespace Helper_1080.ContentPages.Tools
                     }
                 }
             }
+
+            // 如果存在非rar格式的链接，则不要rar
+            var noRarList = down115LinkList.Where(x => !x.Contains(".rar")).ToList();
+            if (noRarList.Count > 0)
+            {
+                down115LinkList = noRarList;
+            }
+
         }
 
         private void FileListView_SelectionChanged(object sender, SelectionChangedEventArgs e)
